@@ -436,11 +436,6 @@ with tab3:
     st.subheader("매체 글자수 체크")
     media_settings = load_media()
 
-    if "selected_media_idx" not in st.session_state:
-        st.session_state["selected_media_idx"] = 0
-    if "editing_idx" not in st.session_state:
-        st.session_state["editing_idx"] = None
-
     col_left, col_right = st.columns([1, 1.6])
 
     with col_left:
