@@ -34,7 +34,7 @@ if not api_key:
     st.stop()
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-1.5-flash-8b")
 
 tab1, tab2 = st.tabs(["📧 심의의견 추출", "📄 소재 수정 제안"])
 
