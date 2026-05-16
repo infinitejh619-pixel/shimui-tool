@@ -179,7 +179,6 @@ with st.sidebar:
                 st.caption(f"🕐 {timestamp}")
                 st.caption(f"📎 {filename}")
 
-                # 이름 변경 모드
                 if st.session_state["renaming_history_id"] == item_id:
                     new_name = st.text_input(
                         "새 작업명",
@@ -312,7 +311,6 @@ with tab1:
                             mime="text/plain"
                         )
 
-                        # 히스토리 저장
                         import uuid
                         new_item = {
                             "id": str(uuid.uuid4()),
