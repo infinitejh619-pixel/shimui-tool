@@ -323,7 +323,6 @@ with tab1:
                         history = load_history()
                         history.insert(0, new_item)
                         save_history(history)
-                        st.rerun()
 
                     except Exception as e:
                         st.error(f"오류가 발생했습니다: {str(e)}")
