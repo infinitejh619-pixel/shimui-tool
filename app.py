@@ -1,22 +1,17 @@
 import streamlit as st
-from google import genai as google_genai
+from groq import Groq
 import pdfplumber
 from pptx import Presentation
 import io
 
-st.set_page_config(
-    page_title="심의의견 분석 도구",
-    page_icon="📋",
-    layout="wide"
-)
+st.set_page_config(page_title="심의의견 분석 도구", page_icon="📋", layout="wide")
 
 st.title("📋 보험 광고 심의의견 분석 도구")
 st.caption("메일에서 심의의견을 추출하고, 소재 수정 방향을 제안받아요.")
 
-# API 키 설정 (Streamlit Cloud secrets 우선, 없으면 사이드바 입력)
 def get_api_key():
     try:
-        return st.secrets["GEMINI_API_KEY"]
+        return st.secrets["GROQ_API_KEY"]
     except Exception:
         return None
 
@@ -25,19 +20,25 @@ api_key = get_api_key()
 if not api_key:
     with st.sidebar:
         st.header("⚙️ 설정")
-        api_key = st.text_input("Gemini API Key", type="password", help="AIza...로 시작하는 키를 입력하세요")
+        api_key = st.text_input("Groq API Key", type="password", help="gsk_로 시작하는 키를 입력하세요")
         if api_key:
             st.success("API 키 입력 완료!")
 
 if not api_key:
-    st.info("👈 왼쪽 사이드바에 Gemini API 키를 입력하면 시작할 수 있어요.")
+    st.info("👈 왼쪽 사이드바에 Groq API 키를 입력하면 시작할 수 있어요.")
     st.stop()
 
-client = google_genai.Client(api_key=api_key)
+client = Groq(api_key=api_key)
+
+def ask_groq(prompt):
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
 tab1, tab2 = st.tabs(["📧 심의의견 추출", "📄 소재 수정 제안"])
 
-# ── 탭 1: 메일에서 심의의견 추출 ──────────────────────────────────────────────
 with tab1:
     st.subheader("메일에서 심의의견 추출")
     st.caption("광고주에게 받은 심의 결과 메일을 붙여넣으면, 심의의견만 깔끔하게 정리해드려요.")
@@ -64,24 +65,22 @@ with tab1:
 
 메일 내용:
 {email_text}"""
-
                 try:
-                    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                    result = ask_groq(prompt)
                     st.success("추출 완료!")
                     st.markdown("---")
                     st.markdown("### 심의의견 목록")
-                    st.markdown(response.text)
+                    st.markdown(result)
                     st.markdown("---")
                     st.download_button(
                         label="📥 텍스트 파일로 저장",
-                        data=response.text,
+                        data=result,
                         file_name="심의의견.txt",
                         mime="text/plain"
                     )
                 except Exception as e:
                     st.error(f"오류가 발생했습니다: {str(e)}")
 
-# ── 탭 2: 소재 수정 제안 ──────────────────────────────────────────────────────
 with tab2:
     st.subheader("소재 수정 제안")
     st.caption("심의서 파일을 업로드하면, 어떤 부분을 어떻게 수정해야 하는지 제안해드려요.")
@@ -126,11 +125,8 @@ with tab2:
                         st.warning("⚠️ 파일에서 텍스트를 추출하지 못했습니다. 이미지로만 구성된 파일이거나 스캔본일 수 있어요.")
                     else:
                         context_line = f"\n광고 소재 추가 정보: {context.strip()}" if context.strip() else ""
-
                         prompt = f"""당신은 보험 광고 심의 전문가입니다.
 아래 보험 광고 심의서 내용을 분석하고, 구체적인 수정 방안을 제안해주세요.{context_line}
-
-다음 형식으로 답변해주세요:
 
 ## 1. 심의 지적 사항 요약
 (어떤 점들이 문제인지 간략히 정리)
@@ -150,14 +146,14 @@ with tab2:
 심의서 내용:
 {file_text}"""
 
-                        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                        result = ask_groq(prompt)
                         st.success("분석 완료!")
                         st.markdown("---")
-                        st.markdown(response.text)
+                        st.markdown(result)
                         st.markdown("---")
                         st.download_button(
                             label="📥 수정 제안 저장",
-                            data=response.text,
+                            data=result,
                             file_name="수정제안.txt",
                             mime="text/plain"
                         )
