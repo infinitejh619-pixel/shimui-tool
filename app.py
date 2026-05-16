@@ -434,105 +434,122 @@ with tab2:
 # ════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.subheader("매체 글자수 체크")
+    media_settings = load_media()
 
-    media_list = load_media()
+    if "selected_media_idx" not in st.session_state:
+        st.session_state["selected_media_idx"] = 0
+    if "editing_idx" not in st.session_state:
+        st.session_state["editing_idx"] = None
 
-    # ── 매체 설정 목록 ──────────────────────────────────────────────────────
-    st.markdown("#### 매체 설정")
+    col_left, col_right = st.columns([1, 1.6])
 
-    col_header = st.columns([2, 2, 2, 3, 1, 1, 1, 1])
-    headers = ["매체", "지면", "구분", "비고", "제한", "공백포함", "", ""]
-    for col, h in zip(col_header, headers):
-        col.markdown(f"**{h}**")
+    with col_left:
+        st.markdown("#### 등록된 설정 목록")
+        st.caption("항목을 클릭하면 오른쪽에서 글자수 체크를 할 수 있어요.")
 
-    for idx, m in enumerate(media_list):
-        editing = st.session_state["editing_idx"] == idx
-        row = st.columns([2, 2, 2, 3, 1, 1, 1, 1])
-
-        if editing:
-            new_media     = row[0].text_input("매체",     value=m["media"],     key=f"e_media_{idx}", label_visibility="collapsed")
-            new_placement = row[1].text_input("지면",     value=m["placement"], key=f"e_place_{idx}", label_visibility="collapsed")
-            new_category  = row[2].text_input("구분",     value=m["category"],  key=f"e_cat_{idx}",   label_visibility="collapsed")
-            new_notes     = row[3].text_input("비고",     value=m["notes"],     key=f"e_notes_{idx}", label_visibility="collapsed")
-            new_limit     = row[4].number_input("제한",   value=m["limit"],     key=f"e_lim_{idx}",   min_value=1, label_visibility="collapsed")
-            new_spaces    = row[5].checkbox("공백",       value=m["include_spaces"], key=f"e_sp_{idx}", label_visibility="collapsed")
-
-            if row[6].button("💾", key=f"save_{idx}", help="저장"):
-                media_list[idx] = {
-                    "media": new_media, "placement": new_placement,
-                    "category": new_category, "notes": new_notes,
-                    "limit": int(new_limit), "include_spaces": new_spaces
-                }
-                save_media(media_list)
-                st.session_state["editing_idx"] = None
-                st.rerun()
-            if row[7].button("✖", key=f"cancel_{idx}", help="취소"):
-                st.session_state["editing_idx"] = None
-                st.rerun()
+        if not media_settings:
+            st.info("아래에서 매체/지면을 먼저 등록해주세요.")
         else:
-            is_selected = st.session_state["selected_media_idx"] == idx
-            label = f"{'✅ ' if is_selected else ''}{m['media']} / {m['placement']} / {m['category']}"
-            if row[0].button(label, key=f"sel_{idx}", use_container_width=True):
-                st.session_state["selected_media_idx"] = idx
-                st.rerun()
-            row[1].write(m["placement"])
-            row[2].write(m["category"])
-            row[3].write(m["notes"])
-            row[4].write(str(m["limit"]))
-            row[5].write("✅" if m["include_spaces"] else "❌")
-            if row[6].button("✏️", key=f"edit_{idx}", help="수정"):
-                st.session_state["editing_idx"] = idx
-                st.rerun()
-            if row[7].button("🗑️", key=f"del_{idx}", help="삭제"):
-                media_list.pop(idx)
-                save_media(media_list)
-                if st.session_state["selected_media_idx"] == idx:
-                    st.session_state["selected_media_idx"] = None
-                elif st.session_state["selected_media_idx"] is not None and st.session_state["selected_media_idx"] > idx:
-                    st.session_state["selected_media_idx"] -= 1
-                st.rerun()
+            for idx, s in enumerate(media_settings):
+                is_selected = st.session_state["selected_media_idx"] == idx
+                is_editing  = st.session_state["editing_idx"] == idx
 
-    # 새 매체 추가
-    with st.expander("➕ 새 매체 추가"):
-        nc1, nc2, nc3, nc4, nc5, nc6 = st.columns([2, 2, 2, 3, 1, 1])
-        n_media     = nc1.text_input("매체",     key="n_media")
-        n_placement = nc2.text_input("지면",     key="n_placement")
-        n_category  = nc3.text_input("구분",     key="n_category")
-        n_notes     = nc4.text_input("비고",     key="n_notes")
-        n_limit     = nc5.number_input("제한 글자수", min_value=1, value=20, key="n_limit")
-        n_spaces    = nc6.checkbox("공백 포함", value=True, key="n_spaces")
-        if st.button("추가", key="btn_add_media"):
-            if n_media and n_category:
-                media_list.append({
-                    "media": n_media, "placement": n_placement,
-                    "category": n_category, "notes": n_notes,
-                    "limit": int(n_limit), "include_spaces": n_spaces
-                })
-                save_media(media_list)
-                st.rerun()
-            else:
-                st.warning("매체와 구분은 필수입니다.")
+                if is_editing:
+                    with st.container(border=True):
+                        st.markdown("**✏️ 편집 중**")
+                        e_media     = st.text_input("매체명", value=s["media"],            key=f"e_media_{idx}")
+                        e_placement = st.text_input("지면",   value=s["placement"],        key=f"e_place_{idx}")
+                        e_category  = st.text_input("구분",   value=s.get("category",""),  key=f"e_cat_{idx}")
+                        e_notes     = st.text_input("비고",   value=s.get("notes",""),     key=f"e_notes_{idx}")
+                        e_limit     = st.number_input("글자수", value=s["limit"], min_value=1, key=f"e_limit_{idx}")
+                        e_spaces    = st.checkbox("공백 포함", value=s["include_spaces"],  key=f"e_spaces_{idx}")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            if st.button("💾 저장", key=f"save_{idx}", use_container_width=True):
+                                media_settings[idx] = {
+                                    "media": e_media, "placement": e_placement,
+                                    "category": e_category, "notes": e_notes,
+                                    "limit": int(e_limit), "include_spaces": e_spaces,
+                                }
+                                save_media(media_settings)
+                                st.session_state["editing_idx"] = None
+                                st.rerun()
+                        with c2:
+                            if st.button("취소", key=f"cancel_{idx}", use_container_width=True):
+                                st.session_state["editing_idx"] = None
+                                st.rerun()
+                else:
+                    notes_text  = f" · {s.get('notes','')}" if s.get('notes') else ""
+                    space_label = "공백포함" if s["include_spaces"] else "공백제외"
+                    prefix      = "✅ " if is_selected else "　 "
+                    label       = f"{prefix}{s['media']} — {s.get('category','')}{notes_text}  [{s['limit']}자/{space_label}]"
 
-    st.markdown("---")
+                    c_btn, c_edit, c_del = st.columns([5, 1, 1])
+                    with c_btn:
+                        if st.button(label, key=f"sel_{idx}", use_container_width=True):
+                            st.session_state["selected_media_idx"] = idx
+                            st.rerun()
+                    with c_edit:
+                        if st.button("✏️", key=f"edit_{idx}", help="편집"):
+                            st.session_state["editing_idx"] = idx
+                            st.session_state["selected_media_idx"] = idx
+                            st.rerun()
+                    with c_del:
+                        if st.button("🗑", key=f"del_{idx}", help="삭제"):
+                            media_settings.pop(idx)
+                            save_media(media_settings)
+                            st.session_state["selected_media_idx"] = max(0, min(
+                                st.session_state["selected_media_idx"], len(media_settings) - 1))
+                            st.rerun()
 
-    # ── 글자수 체크 ─────────────────────────────────────────────────────────
-    st.markdown("#### 글자수 체크")
+        st.markdown("---")
+        with st.expander("➕ 신규 매체/지면 등록"):
+            new_media     = st.text_input("매체명",      placeholder="예: 카카오",     key="nm")
+            new_placement = st.text_input("지면",        placeholder="예: 배너",       key="np")
+            new_category  = st.text_input("구분",        placeholder="예: 광고문구 1", key="nc")
+            new_notes     = st.text_input("비고",        placeholder="예: 윗배너",     key="nn")
+            new_limit     = st.number_input("글자수 제한", min_value=1, value=20,      key="nl")
+            new_spaces    = st.checkbox("공백 포함 글자수", value=True,                key="ns")
 
-    sel_idx = st.session_state.get("selected_media_idx")
-    if sel_idx is not None and sel_idx < len(media_list):
-        sel = media_list[sel_idx]
-        st.markdown(
-            f"선택된 매체: **{sel['media']}** / {sel['placement']} / {sel['category']} "
-            f"(제한: **{sel['limit']}자**, 공백 {'포함' if sel['include_spaces'] else '미포함'})"
-        )
-        check_text = st.text_area("문구 입력", height=80, placeholder="체크할 광고 문구를 입력하세요...", key="check_text")
-        if check_text:
-            count = len(check_text) if sel["include_spaces"] else len(check_text.replace(" ", ""))
-            limit = sel["limit"]
-            remaining = limit - count
-            if remaining >= 0:
-                st.success(f"✅ {count}자 / {limit}자 (여유: {remaining}자)")
-            else:
-                st.error(f"❌ {count}자 / {limit}자 (초과: {abs(remaining)}자)")
-    else:
-        st.info("위 목록에서 매체를 클릭해서 선택하면 글자수를 체크할 수 있어요.")
+            if st.button("등록", type="primary", use_container_width=True):
+                if new_media and new_placement and new_category:
+                    media_settings.append({
+                        "media": new_media, "placement": new_placement,
+                        "category": new_category, "notes": new_notes,
+                        "limit": int(new_limit), "include_spaces": new_spaces,
+                    })
+                    save_media(media_settings)
+                    st.session_state["selected_media_idx"] = len(media_settings) - 1
+                    st.success("등록 완료!")
+                    st.rerun()
+                else:
+                    st.error("매체명, 지면, 구분은 필수입니다.")
+
+    with col_right:
+        st.markdown("#### 글자수 체크")
+        if not media_settings:
+            st.info("왼쪽에서 매체/지면을 먼저 등록해주세요.")
+        else:
+            idx     = min(st.session_state.get("selected_media_idx", 0), len(media_settings) - 1)
+            setting = media_settings[idx]
+            notes   = f" · {setting.get('notes','')}" if setting.get('notes') else ""
+            st.info(
+                f"**{setting['media']}** — {setting['placement']} — {setting.get('category','')}{notes}  \n"
+                f"제한: **{setting['limit']}자** ({'공백 포함' if setting['include_spaces'] else '공백 제외'})"
+            )
+            check_text = st.text_area("문구 입력", height=220,
+                placeholder="글자수를 체크할 문구를 붙여넣으세요...")
+
+            if check_text:
+                count = len(check_text) if setting["include_spaces"] else len(check_text.replace(" ", ""))
+                limit = setting["limit"]
+                space_note = "공백 포함" if setting["include_spaces"] else "공백 제외"
+                st.markdown("---")
+                if count <= limit:
+                    st.success(f"✅ 통과!  **{count}자** / {limit}자 ({space_note})")
+                    st.progress(count / limit)
+                else:
+                    over = count - limit
+                    st.error(f"❌ 초과!  **{count}자** / {limit}자 — {over}자 초과 ({space_note})")
+                    st.progress(min(count / limit, 1.0))
+                st.caption(f"공백 포함: {len(check_text)}자  ·  공백 제외: {len(check_text.replace(' ',''))}자")
