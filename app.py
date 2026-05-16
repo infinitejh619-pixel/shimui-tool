@@ -45,13 +45,13 @@ def save_to_history(email_text, result, job_name="", filename=""):
     history = load_history()
     label = job_name.strip() if job_name.strip() else f"작업 {now_kst()}"
     item = {
-        "id":        datetime.now(KST).strftime("%Y%m%d_%H%M%S"),
-        "timestamp": now_kst(),
-        "job_name":  label,
-        "filename":  filename,
-        "preview":   email_text[:40].replace("\n", " ") + ("..." if len(email_text) > 40 else ""),
+        "id":         datetime.now(KST).strftime("%Y%m%d_%H%M%S"),
+        "timestamp":  now_kst(),
+        "job_name":   label,
+        "filename":   filename,
+        "preview":    email_text[:40].replace("\n", " ") + ("..." if len(email_text) > 40 else ""),
         "email_text": email_text,
-        "result":    result,
+        "result":     result,
     }
     history.insert(0, item)
     history = history[:30]
@@ -121,18 +121,15 @@ def ocr_image(image_bytes, slide_num, image_num):
 def extract_file_text(uploaded_file, use_ocr=False):
     file_text = ""
     data = uploaded_file.read()
-
     if uploaded_file.name.lower().endswith(".pdf"):
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             for i, page in enumerate(pdf.pages, 1):
                 text = page.extract_text()
                 if text:
                     file_text += f"[{i}페이지]\n{text}\n\n"
-
     elif uploaded_file.name.lower().endswith(".pptx"):
         prs = Presentation(io.BytesIO(data))
         ocr_results = {}
-
         if use_ocr:
             image_tasks = []
             for i, slide in enumerate(prs.slides, 1):
@@ -150,7 +147,6 @@ def extract_file_text(uploaded_file, use_ocr=False):
                     for future in as_completed(futures):
                         sn, inn = futures[future]
                         ocr_results[(sn, inn)] = future.result()
-
         for i, slide in enumerate(prs.slides, 1):
             slide_text = ""
             img_num = 0
@@ -167,10 +163,9 @@ def extract_file_text(uploaded_file, use_ocr=False):
                         slide_text += f"[{img_num}번 이미지: OCR 비활성화로 읽을 수 없음]\n"
             if slide_text:
                 file_text += f"[{i}페이지]\n{slide_text}\n"
-
     return file_text
 
-# ── 사이드바 히스토리 ──────────────────────────────────────────────────────────
+# ── 사이드바 ───────────────────────────────────────────────────────────────────
 history = load_history()
 with st.sidebar:
     st.header("📁 최근 작업 히스토리")
@@ -178,10 +173,9 @@ with st.sidebar:
         st.caption("아직 작업 내역이 없어요.")
     else:
         for i, item in enumerate(history, 1):
-            job_name = item.get("job_name", "(이름 없음)")
-            filename = item.get("filename", "없음")
+            job_name  = item.get("job_name", "(이름 없음)")
+            filename  = item.get("filename", "없음")
             timestamp = item.get("timestamp", "")
-
             with st.expander(f"{i}. {job_name}"):
                 st.caption(f"🕐 작업 시간: {timestamp}")
                 st.caption(f"📎 파일명: {filename}")
@@ -193,7 +187,7 @@ st.title("📋 보험 광고 심의의견 분석 도구")
 tab1, tab2, tab3 = st.tabs(["🔍 심의의견 ↔ 소재 1:1 매칭", "✅ 수정 반영 검수", "✏️ 매체 글자수 체크"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 탭 1 — 1:1 매칭
+# 탭 1
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab1:
     st.subheader("심의의견 ↔ 소재 1:1 매칭")
@@ -209,8 +203,8 @@ with tab1:
         uploaded_file = st.file_uploader("소재 파일 업로드 (PDF 또는 PPT)", type=["pdf", "pptx"])
         if uploaded_file:
             st.info(f"업로드: {uploaded_file.name}")
-        use_ocr = st.toggle("🖼️ 이미지 내 텍스트도 읽기 (OCR)",
-            value=False, help="켜면 이미지 안 텍스트도 추출하지만 시간이 더 걸려요.")
+        use_ocr = st.toggle("🖼️ 이미지 내 텍스트도 읽기 (OCR)", value=False,
+            help="켜면 이미지 안 텍스트도 추출하지만 시간이 더 걸려요.")
 
     if st.button("1:1 매칭 분석하기", type="primary", key="btn_match"):
         if not email_text.strip():
@@ -218,8 +212,7 @@ with tab1:
         elif not uploaded_file:
             st.error("소재 파일을 업로드해주세요.")
         else:
-            msg = "이미지 OCR 포함 분석 중..." if use_ocr else "소재 분석 중..."
-            with st.spinner(msg):
+            with st.spinner("이미지 OCR 포함 분석 중..." if use_ocr else "소재 분석 중..."):
                 try:
                     file_text = extract_file_text(uploaded_file, use_ocr=use_ocr)
                     if not file_text.strip():
@@ -230,10 +223,9 @@ with tab1:
                         else:
                             ocr_instruction = (
                                 "⚠️ OCR 비활성화 상태입니다. '[N번 이미지: OCR 비활성화로 읽을 수 없음]'으로 표시된 부분은 이미지이며 텍스트를 읽을 수 없습니다.\n"
-                                "심의의견이 해당 이미지의 문구를 지적하는 경우, 반드시 '❌ 현재 문구: 🔒 이미지 인식 불가 (OCR 기능을 켜고 다시 시도하세요)'라고 표시하세요.\n"
+                                "심의의견이 해당 이미지의 문구를 지적하는 경우 반드시 '❌ 현재 문구: 🔒 이미지 인식 불가 (OCR 기능을 켜고 다시 시도하세요)'라고 표시하세요.\n"
                                 "절대 이미지 내용을 추측하거나 지어내지 마세요."
                             )
-
                         prompt = f"""당신은 보험 광고 심의 전문가입니다.
 심의 메일의 각 의견과 소재의 해당 부분을 1:1로 매칭해주세요.
 
@@ -269,7 +261,6 @@ with tab1:
 
 ===== 소재 내용 (페이지별) =====
 {file_text}"""
-
                         result = ask_groq(prompt)
                         save_to_history(
                             email_text, result,
@@ -285,7 +276,7 @@ with tab1:
                     st.error(f"오류: {str(e)}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 탭 2 — 검수
+# 탭 2
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab2:
     st.subheader("수정 반영 검수")
@@ -309,7 +300,7 @@ with tab2:
                         if not revised_text.strip():
                             st.warning("⚠️ 파일에서 텍스트를 추출하지 못했습니다.")
                         else:
-                                                       prompt = f"""당신은 보험 광고 심의 검수 전문가입니다.
+                            prompt = f"""당신은 보험 광고 심의 검수 전문가입니다.
 원본 심의의견 분석 결과와 수정된 소재를 비교하여, 각 심의의견이 반영됐는지 검수해주세요.
 
 작업 방법:
@@ -353,7 +344,7 @@ with tab2:
                         st.error(f"오류: {str(e)}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 탭 3 — 매체 글자수 체크
+# 탭 3
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.subheader("매체 글자수 체크")
@@ -456,9 +447,10 @@ with tab3:
             idx     = min(st.session_state.get("selected_media_idx", 0), len(media_settings) - 1)
             setting = media_settings[idx]
             notes   = f" · {setting.get('notes','')}" if setting.get('notes') else ""
-            st.info(f"**{setting['media']}** — {setting['placement']} — {setting.get('category','')}{notes}  \n"
-                    f"제한: **{setting['limit']}자** ({'공백 포함' if setting['include_spaces'] else '공백 제외'})")
-
+            st.info(
+                f"**{setting['media']}** — {setting['placement']} — {setting.get('category','')}{notes}  \n"
+                f"제한: **{setting['limit']}자** ({'공백 포함' if setting['include_spaces'] else '공백 제외'})"
+            )
             check_text = st.text_area("문구 입력", height=220,
                 placeholder="글자수를 체크할 문구를 붙여넣으세요...")
 
