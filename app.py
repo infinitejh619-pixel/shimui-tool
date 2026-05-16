@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai as google_genai
 import pdfplumber
 from pptx import Presentation
 import io
@@ -33,8 +33,7 @@ if not api_key:
     st.info("👈 왼쪽 사이드바에 Gemini API 키를 입력하면 시작할 수 있어요.")
     st.stop()
 
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-1.5-flash-8b")
+client = google_genai.Client(api_key=api_key)
 
 tab1, tab2 = st.tabs(["📧 심의의견 추출", "📄 소재 수정 제안"])
 
@@ -67,7 +66,7 @@ with tab1:
 {email_text}"""
 
                 try:
-                    response = model.generate_content(prompt)
+                    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
                     st.success("추출 완료!")
                     st.markdown("---")
                     st.markdown("### 심의의견 목록")
@@ -151,7 +150,7 @@ with tab2:
 심의서 내용:
 {file_text}"""
 
-                        response = model.generate_content(prompt)
+                        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
                         st.success("분석 완료!")
                         st.markdown("---")
                         st.markdown(response.text)
