@@ -523,7 +523,7 @@ with tab3:
         if not media_settings:
             st.info("왼쪽에서 매체/지면을 먼저 등록해주세요.")
         else:
-            idx     = min(st.session_state.get("selected_media_idx", 0), len(media_settings) - 1)
+            idx     = min(st.session_state.get("selected_media_idx" or 0), len(media_settings) - 1)
             setting = media_settings[idx]
             notes   = f" · {setting.get('notes','')}" if setting.get('notes') else ""
             st.info(
