@@ -160,6 +160,8 @@ if "editing_idx" not in st.session_state:
     st.session_state["editing_idx"] = None
 if "renaming_history_id" not in st.session_state:
     st.session_state["renaming_history_id"] = None
+if "tab1_result" not in st.session_state:
+    st.session_state["tab1_result"] = None
 
 # ── 사이드바: 히스토리 ────────────────────────────────────────────────────────
 history = load_history()
@@ -278,12 +280,16 @@ with tab1:
 ---
 **[의견 N]**
 📋 **의견 원문**: (메일에서 추출한 심의의견 원문 그대로)
-📄 **페이지 번호**: (해당 페이지 번호, 여러 개면 전부 나열)
-🏷️ **배너 번호**: (해당 배너 번호, 없으면 '해당 없음')
+📄 **페이지 번호**: (소재 파일의 [슬라이드 N] 번호 기준, 여러 개면 전부 나열)
+🏷️ **배너 번호**: (슬라이드 내 '(1)배너' '(2)배너' 등 텍스트 기준, 없으면 '해당 없음')
 ❌ **현재 문구**: (소재에서 찾은 현재 문구 또는 이미지 설명)
 ✅ **수정 문구**: (구체적인 수정 제안)
 💡 **수정 이유**: (왜 수정해야 하는지)
 ---
+
+소재 파일 구조 안내:
+- [슬라이드 N] 태그의 N이 곧 페이지 번호입니다.
+- 슬라이드 텍스트 안에 '(1)배너', '(2)배너' 형태가 있으면 그것이 배너 번호입니다.
 
 [심의 결과 메일]
 {email_text}
@@ -299,17 +305,7 @@ with tab1:
                             max_tokens=4000
                         )
                         result_text = response.choices[0].message.content
-
-                        st.success("매칭 완료!")
-                        st.markdown("---")
-                        st.markdown(result_text)
-                        st.markdown("---")
-                        st.download_button(
-                            label="📥 결과 저장",
-                            data=result_text,
-                            file_name="심의의견_매칭결과.txt",
-                            mime="text/plain"
-                        )
+                        st.session_state["tab1_result"] = result_text
 
                         import uuid
                         new_item = {
@@ -326,6 +322,18 @@ with tab1:
 
                     except Exception as e:
                         st.error(f"오류가 발생했습니다: {str(e)}")
+
+    if st.session_state.get("tab1_result"):
+        st.success("매칭 완료!")
+        st.markdown("---")
+        st.markdown(st.session_state["tab1_result"])
+        st.markdown("---")
+        st.download_button(
+            label="📥 결과 저장",
+            data=st.session_state["tab1_result"],
+            file_name="심의의견_매칭결과.txt",
+            mime="text/plain"
+        )
 
 # ════════════════════════════════════════════════════════════════════════════
 # 탭 2: 수정 반영 검수
@@ -386,12 +394,16 @@ with tab2:
 ---
 **[의견 N]**
 📋 **의견 원문**: (원래 심의의견 원문)
-📄 **페이지 번호**: (해당 페이지)
-🏷️ **배너 번호**: (해당 배너, 없으면 '해당 없음')
+📄 **페이지 번호**: (수정 파일의 [슬라이드 N] 번호 기준)
+🏷️ **배너 번호**: (슬라이드 내 '(1)배너' '(2)배너' 등 텍스트 기준, 없으면 '해당 없음')
 🔄 **수정 문구**: (수정 파일에서 찾은 현재 문구)
 ✅ **확인 내용**: (반영 여부 및 세부 내용)
 **판정**: ✅ 반영완료 / ❌ 미반영 / ⚠️ 부분반영
 ---
+
+소재 파일 구조 안내:
+- [슬라이드 N] 태그의 N이 곧 페이지 번호입니다.
+- 슬라이드 텍스트 안에 '(1)배너', '(2)배너' 형태가 있으면 그것이 배너 번호입니다.
 
 마지막에 아래 형식으로 총평을 추가하세요:
 ## 검수 결과 요약
